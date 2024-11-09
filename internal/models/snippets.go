@@ -24,7 +24,6 @@ type SnippetModel struct {
 
 // Insert This will insert a new snippet into the database.
 func (m *SnippetModel) Insert(title string, content string, expires int) (int, error) {
-	// Connect to the MongoDB collection
 	collection := m.DB.Database("snippetsDB").Collection("snippets")
 
 	var latestSnippet Snippet
@@ -54,10 +53,51 @@ func (m *SnippetModel) Insert(title string, content string, expires int) (int, e
 
 // Get This will return a specific snippet based on its id.
 func (m *SnippetModel) Get(id int) (Snippet, error) {
-	return Snippet{}, nil
+	collection := m.DB.Database("snippetsDB").Collection("snippets")
+	var snippet Snippet
+
+	filter := bson.D{{Key: "snippet_id", Value: id}}
+	err := collection.FindOne(context.Background(), filter).Decode(&snippet)
+	if err == mongo.ErrNoDocuments {
+		return Snippet{}, ErrNoRecord
+	} else if err != nil {
+		return Snippet{}, err
+	}
+
+	return snippet, nil
 }
 
 // Latest This will return the 10 most recently created snippets.
 func (m *SnippetModel) Latest() ([]Snippet, error) {
-	return nil, nil
+	collection := m.DB.Database("snippetsDB").Collection("snippets")
+	var snippets []Snippet
+
+	// Create a sort filter (sort by 'createdAt' field in descending order)
+	sortOptions := bson.D{{Key: "created", Value: -1}} // Descending order (-1)
+
+	findOptions := options.Find()
+	findOptions.SetSort(sortOptions)
+	findOptions.SetLimit(10)
+
+	cursor, err := collection.Find(context.Background(), bson.D{}, findOptions)
+	if err == mongo.ErrNoDocuments {
+		return []Snippet{}, ErrNoRecord
+	} else if err != nil {
+		return []Snippet{}, err
+	}
+
+	// Iterate through the cursor and decode each document into the Snippet struct
+	for cursor.Next(context.Background()) {
+		var snippet Snippet
+		if err := cursor.Decode(&snippet); err != nil {
+			log.Fatal(err)
+		}
+		snippets = append(snippets, snippet)
+	}
+
+	if err := cursor.Err(); err != nil {
+		log.Fatal(err)
+	}
+
+	return snippets, nil
 }
