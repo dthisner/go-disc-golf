@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"log/slog"
 	"net/http"
 	"strconv"
 	"text/template"
@@ -18,15 +17,13 @@ func (app *application) home(w http.ResponseWriter, r *http.Request) {
 
 	ts, err := template.ParseFiles(files...)
 	if err != nil {
-		app.logger.Error(err.Error(), slog.String("msg", "parsing the Templates"), slog.String("method", r.Method), slog.String("uri", r.URL.RequestURI()))
-		http.Error(w, fmt.Sprintf("Internal Server Error\nissue parsing the Templates with error: %s", err.Error()), http.StatusInternalServerError)
+		app.serverError(w, r, "parsing the templates", err)
 		return
 	}
 
 	err = ts.ExecuteTemplate(w, "base", nil)
 	if err != nil {
-		app.logger.Error(err.Error(), slog.String("msg", "executing the Templates"), slog.String("method", r.Method), slog.String("uri", r.URL.RequestURI()))
-		http.Error(w, fmt.Sprintf("Internal Server Error\n%sIssue executing the templates with error: ", err.Error()), http.StatusInternalServerError)
+		app.serverError(w, r, "executing the templates", err)
 	}
 }
 
