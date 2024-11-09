@@ -2,13 +2,13 @@ package main
 
 import (
 	"fmt"
-	"log"
+	"log/slog"
 	"net/http"
 	"strconv"
 	"text/template"
 )
 
-func home(w http.ResponseWriter, r *http.Request) {
+func (app *application) home(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Server", "Go")
 
 	files := []string{
@@ -18,21 +18,19 @@ func home(w http.ResponseWriter, r *http.Request) {
 
 	ts, err := template.ParseFiles(files...)
 	if err != nil {
-		msg := fmt.Sprintf("error: issue getting the Templates with error: '%s'", err.Error())
-		log.Print(msg)
-		http.Error(w, fmt.Sprintf("Internal Server Error\n%s", msg), http.StatusInternalServerError)
+		app.logger.Error(err.Error(), slog.String("msg", "parsing the Templates"), slog.String("method", r.Method), slog.String("uri", r.URL.RequestURI()))
+		http.Error(w, fmt.Sprintf("Internal Server Error\nissue parsing the Templates with error: %s", err.Error()), http.StatusInternalServerError)
 		return
 	}
 
 	err = ts.ExecuteTemplate(w, "base", nil)
 	if err != nil {
-		msg := fmt.Sprintf("error: issue loading the Template with error: '%s'", err.Error())
-		log.Print(msg)
-		http.Error(w, fmt.Sprintf("Internal Server Error\n%s", msg), http.StatusInternalServerError)
+		app.logger.Error(err.Error(), slog.String("msg", "executing the Templates"), slog.String("method", r.Method), slog.String("uri", r.URL.RequestURI()))
+		http.Error(w, fmt.Sprintf("Internal Server Error\n%sIssue executing the templates with error: ", err.Error()), http.StatusInternalServerError)
 	}
 }
 
-func snippetView(w http.ResponseWriter, r *http.Request) {
+func (app *application) snippetView(w http.ResponseWriter, r *http.Request) {
 	id, err := strconv.Atoi(r.PathValue("id"))
 	if err != nil || id < 1 {
 		http.NotFound(w, r)
@@ -41,11 +39,11 @@ func snippetView(w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w, "Display a specific snippet with ID %d...", id)
 }
 
-func snippetCreate(w http.ResponseWriter, r *http.Request) {
+func (app *application) snippetCreate(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("Display a form for creating a new snippet..."))
 }
 
-func snippetCreatePost(w http.ResponseWriter, r *http.Request) {
+func (app *application) snippetCreatePost(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusCreated)
 	w.Write([]byte("Save a new snippet..."))
 }
