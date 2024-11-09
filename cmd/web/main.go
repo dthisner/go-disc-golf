@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"os"
 
+	"go-disc-golf/internal/models"
+
 	"github.com/joho/godotenv"
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/mongo"
@@ -13,7 +15,8 @@ import (
 )
 
 type application struct {
-	logger *slog.Logger
+	logger   *slog.Logger
+	snippets *models.SnippetModel
 }
 
 func main() {
@@ -44,7 +47,8 @@ func main() {
 	}()
 
 	app := &application{
-		logger: logger,
+		logger:   logger,
+		snippets: &models.SnippetModel{DB: db},
 	}
 
 	logger.Info("Pinged your deployment. You successfully connected to MongoDB!")
